@@ -1,0 +1,14 @@
+<!--Scene set up -->
+<mujoco>
+    <include file="panda.xml"/> 
+    <worldbody>
+        <geom name="floor" type="plane" size="3 3 0.05" pos="0 0 -.75"/>
+        <geom name="table" type="box" size="0.7 0.5 0.02" pos="0.2 0 -0.02" rgba="0.6 0.45 0.3 1"/>
+        <light name="top_light" pos="0 0 2"/>
+        <body name="cube" pos="0.5 0.15 0.02">
+            <freejoint/>
+            <geom type="box" size="0.02 0.02 0.02" mass="0.05" rgba="0.9 0.2 0.2 1"/>
+        </body>
+        <geom name="target" type="box" size="0.04 0.04 0.001" pos="0.5 -0.2 0.001" contype="0" conaffinity="0" rgba="0.2 0.8 0.2 0.5"/>
+    </worldbody>
+</mujoco>
