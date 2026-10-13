@@ -1,4 +1,4 @@
-# Inverse kinematics solver using mink
+'''Inverse kinematics solver using mink'''
 import time
 import mujoco
 import mujoco.viewer
@@ -19,7 +19,7 @@ configuration.update(data.qpos)
 # Gripper points down in home, so save that orientation and reuse it for every target
 rotation = configuration.get_transform_frame_to_world("grip", "site").rotation()
 
-#sets time and fps of simulation
+#sets time and fps of simulation of one movement
 duration, fps = 5.0, 60
 frames = int(duration * fps)
 gain = 1.0 - 0.01 ** (1.0 / frames)  #makes smooth translation
@@ -61,12 +61,13 @@ def go_to(position, viewer):
         if not viewer.is_running():
             return
 
-with mujoco.viewer.launch_passive(model, data) as viewer:
-    go_to(cube_pos, viewer)
-    go_to(target_pos + hover, viewer)
+if __name__ == "__main__":  #runs only when ik is ran and not when imported in other files
+    with mujoco.viewer.launch_passive(model, data) as viewer:
+        go_to(cube_pos, viewer)
+        go_to(target_pos + hover, viewer)
 
-    # keeps the window open after the moves
-    while viewer.is_running():
-        mujoco.mj_step(model, data)
-        viewer.sync()
-        time.sleep(model.opt.timestep)
+        # keeps the window open after the moves
+        while viewer.is_running():
+            mujoco.mj_step(model, data)
+            viewer.sync()
+            time.sleep(model.opt.timestep)
