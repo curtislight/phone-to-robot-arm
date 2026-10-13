@@ -6,10 +6,21 @@ import mink
 from mink import SE3, solve_ik
 import numpy as np
 
-model = mujoco.MjModel.from_xml_path("assets/franka_emika_panda/my_scene.xml")
+#selects robot
+robot = int(input("robot?"))
+if robot == 1:   #panda
+    model = mujoco.MjModel.from_xml_path("assets/franka_emika_panda/my_scene.xml")
+    max_q = 7
+    suction_height = np.array([0, 0, 0])
+
+elif robot == 2:   #ur5e
+    model = mujoco.MjModel.from_xml_path("assets/universal_robots_ur5e/my_scene.xml")
+    max_q = 6
+    suction_height = np.array([0, 0, 0.019])
+
 data = mujoco.MjData(model)
 
-home_id = model.key("home").id  # gets home joint angles from panda.xml
+home_id = model.key("home").id  # gets home joint angles from .xml
 mujoco.mj_resetDataKeyframe(model, data, home_id)
 mujoco.mj_forward(model, data)
 
@@ -51,7 +62,7 @@ def go_to(position, viewer):
         vel = solve_ik(configuration, [grip_task], dt, "daqp")
         configuration.integrate_inplace(vel, dt)
 
-        data.ctrl[:7] = configuration.q[:7]  # send the 7 arm joint angles to the motors
+        data.ctrl[:max_q] = configuration.q[:max_q]  # send all arm joint angles to the motors
 
         for _ in range(steps_per_frame):
             mujoco.mj_step(model, data)
@@ -63,8 +74,8 @@ def go_to(position, viewer):
 
 if __name__ == "__main__":  #runs only when ik is ran and not when imported in other files
     with mujoco.viewer.launch_passive(model, data) as viewer:
-        go_to(cube_pos, viewer)
-        go_to(target_pos + hover, viewer)
+        go_to(cube_pos + suction_height, viewer)
+        go_to(target_pos + hover + suction_height, viewer)
 
         # keeps the window open after the moves
         while viewer.is_running():
