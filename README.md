@@ -13,19 +13,19 @@ The task is simple on purpose: pick up a cube, place it on a target. Clear succe
 ## Where it's at
 
 Done
-[x] MuJoCo scene with table, cube and target
-[x] IK with mink, gripper kept pointing down, smooth moves
-[x] Scripted pick and place on the Panda (parallel gripper)
-[x] Same pipeline on the UR5e, with a suction gripper
-[x] One codebase, pick the robot at launch
+- [x] MuJoCo scene with table, cube and target
+- [x] IK with mink, gripper kept pointing down, smooth moves
+- [x] Scripted pick and place on the Panda (parallel gripper)
+- [x] Same pipeline on the UR5e, with a suction gripper
+- [x] One codebase, pick the robot at launch
 
 Next
-[] Film 18 overhead demos, 4 held out for testing
-[] ArUco marker calibration, pixels to table coordinates
-[] MediaPipe hand tracking for grasp and release
-[] Audio onset detection, timing the release from the sound of the cube landing
-[] 2-link arm driven by my C++ IK library
-[] Small behaviour cloning policy, tested on the held-out positions
+- [ ] Film 18 overhead demos, 4 held out for testing
+- [ ] ArUco marker calibration, pixels to table coordinates
+- [ ] MediaPipe hand tracking for grasp and release
+- [ ] Audio onset detection, timing the release from the sound of the cube landing
+- [ ] 2-link arm driven by my C++ IK library
+- [ ] Small behaviour cloning policy, tested on the held-out positions
 
 ## Run it
 
