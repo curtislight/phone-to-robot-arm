@@ -1,0 +1,3 @@
+[submodule "cpp/ik_solver"]
+	path = cpp/ik_solver
+	url = https://github.com/curtislight/2D-Inverse-Kinematic-Solver.git
