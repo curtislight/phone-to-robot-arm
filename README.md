@@ -140,10 +140,8 @@ c++ -O3 -shared -std=c++17 -undefined dynamic_lookup $(python -m pybind11 --incl
 - [ ] More demos, a real cube, and a moving target so release prediction matters
 - [ ] Use the 2D Arm Joint Control PID loops for the 2-link joints
 
-## How this was built
-
-The scene, robot setup in `ik.py` and `pick.py`, and the 2-link arm are mine, built while learning with Claude as a tutor. The C++ IK library is mine from before. Under the deadline, calibration, hand tracking, audio, retargeting and the policy were written with heavy help from Claude, and I've gone through each to understand it. All demo data is from my own recordings.
-
 ## Built with
 
 MuJoCo · [Menagerie](https://github.com/google-deepmind/mujoco_menagerie) (Apache 2.0, grip sites and suction cup added) · [mink](https://github.com/kevinzakka/mink) · MediaPipe · OpenCV · librosa · PyTorch · pybind11 · C++
+
+All demo data is from my own recordings.
