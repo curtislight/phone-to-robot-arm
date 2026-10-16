@@ -1,6 +1,6 @@
 # phone-to-robot-arm
 
-Film yourself moving a cube with your phone. Three different robots do the same in simulation.
+Film yourself moving an object with your phone. Three different robots do the same in simulation. One phone demo is turned into table coordinates, replayed on a Franka Panda, a UR5e and a 2-link arm I designed, then used to train a small policy. The 2-link arm runs on my [2D Inverse Kinematics Solver](https://github.com/curtislight/2D-Inverse-Kinematic-Solver), and is the simulated counterpart to my [2D Arm Joint Control](https://github.com/curtislight/2D-Arm-Joint-Control) project.
 
 Built for Humanoid's Robot Learning intern challenge, October 2026.
 
@@ -10,74 +10,91 @@ Built for Humanoid's Robot Learning intern challenge, October 2026.
 
 _The same phone demo, replayed on three different robots._
 
-## Highlights
+| Far right | Near left | Near centre |
+|---|---|---|
+| ![](media/ur5e_demo_03.gif) | ![](media/ur5e_demo_07.gif) | ![](media/ur5e_demo_12.gif) |
 
-- **One demo, three bodies.** A Franka Panda, a UR5e, and a 2-link arm I designed.
-- **My own C++ in the loop.** The 2-link arm runs on my 2D IK library, unmodified, called through pybind11.
-- **Vision plus sound.** MediaPipe tracks the hand. The tap of the cube landing sharpens the release timing.
-- **A small learned policy**, tested on held-out demos against baselines.
-- **Everything is scored.** Every replay logs how far the cube landed from the target.
+_Different starting positions, all on the UR5e._
 
-## Overview
+## Approach
 
-Pick up a cube, put it on a target. Simple task, clear success metric, clear release moment.
+- **Calibration**: a printed ArUco marker of known size and position maps every pixel to a table position in metres.
+- **Demo extraction**: the object's position before my hand enters and after it leaves gives exact grab and release points. MediaPipe tracks my hand for the path and the timing.
+- **Audio**: the tap of the object landing pins down the release moment.
+- **Retargeting**: each demo replays on three robots. The Panda and UR5e use mink for IK, the 2-link arm uses my C++ library through pybind11.
+- **Policy**: a regularised linear model learns the path and release from the start position, tested on held-out demos against a baseline.
 
-I film from directly above. A printed ArUco marker turns pixels into table positions in metres. The object's own position, before my hand enters and after it leaves, gives exact grab and release points. MediaPipe tracks my hand for the carried path and the timing. The tap of the object landing refines the release moment. The result is a demo: where I grabbed, the path I carried, where I let go.
+```mermaid
+flowchart LR
+    A[Phone video] --> B[Marker calibration]
+    B --> C[Object + hand tracking]
+    C --> D[Audio tap]
+    D --> E[Demo]
+    E --> F[Panda]
+    E --> G[UR5e]
+    E --> H[2-link, C++ IK]
+    E --> I[Policy]
+    I --> J[Predicted demo] --> G
+```
 
-That demo replays on three robots in MuJoCo. The Panda and UR5e use mink for IK. The 2-link arm uses my C++ library. A small network then learns from 10 demos to predict the path and release from the start position, tested on the other 3.
+| Calibration | Hand tracking |
+|---|---|
+| ![Calibration](media/calibration.png) | ![Tracking](media/tracking.png) |
 
-**Why a 2D arm?** The camera looks straight down, so it only sees x and y. A flat arm with a vertical slide matches that data. Height comes from the events: low at grab and release, carried in between.
-
-**Author.** I'm [Curtis Light](https://www.linkedin.com/in/curtis-light/), third year MEng Design Engineering at Imperial College London. My background is hardware.
+_Left: detected marker corners. Right: grasp point between thumb and index._
 
 ## Results
 
-13 demos, each replayed on all three robots. Success means the cube's centre lands within 4cm of the target's.
+13 demos on all three robots. Success means the object's centre lands within 4cm of the target's.
 
-| Robot | Success | Mean error to target | Mean error to my release |
-|-------|---------|----------------------|--------------------------|
+| Robot | Success | Error to target | Error to my release |
+|---|---|---|---|
 | Panda | 12 / 13 | 20.4 mm | 7.8 mm |
 | UR5e | 10 / 13 | 24.2 mm | 2.8 mm |
 | 2-link | 11 / 13 | 29.0 mm | 27.8 mm |
 
-The last column is the one that matters. It measures how faithfully each robot copies what my hand did. The UR5e lands within 3mm of my release on average, the Panda within 8mm. Most "failures" are mine, not the robot's: on those demos my own hand released just over 4cm from the target, and the robot copied it.
+The last column measures how faithfully each robot copies my hand. Most "failures" are mine: my own release was just over 4cm off target, and the robot copied it. The 2-link arm drags the object rather than lifting it, so it's the loosest.
 
-The 2-link arm is the loosest. Its tool drags the cube instead of lifting it cleanly, so the cube slides. Its success rate beating the UR5e's is luck, not precision.
-
-**Policy on the 3 held-out demos**
+**Policy on 3 held-out demos**
 
 | | Release error | Path error |
 |---|---|---|
-| Linear policy (final) | 21.0 mm | 54.0 mm |
+| Linear policy | 21.0 mm | 54.0 mm |
 | Baseline | 16.0 mm | 54.3 mm |
 | Neural net (first try) | 36.8 mm | 132.7 mm |
 
-My first policy was a small neural network. It hit near-zero training loss, meaning it memorised the 10 demos, and lost badly to the baseline. So I switched to a linear model that predicts corrections on top of the baseline, with a penalty on large weights. With so little data, it can't memorise, and if it learns nothing it falls back to the baseline.
+The neural net memorised the 10 training demos and lost badly. The linear model predicts corrections on top of the baseline, so with little data it can't memorise and falls back to the baseline. It beats the baseline on path for demos 09 and 13, inside the training spread, and loses on 04, at the edge. On release the baseline wins: my target never moves.
 
-On average it ties the baseline on path. Per demo it's more interesting: on demos 09 and 13, inside the training spread, it beats the baseline (28.5 vs 39.8mm, and 42.5 vs 70.2mm). On demo 04, at the far edge of the spread, it loses (91.1 vs 52.8mm), because it's extrapolating. On release the baseline wins, which makes sense: my target never moves, so "the usual spot" is hard to beat.
-
-**The policy driving a robot.** Fed only the cube's start position, the policy's predictions ran on the UR5e: 3 out of 3 successes, landing 36, 16 and 10mm from the target. These are runs no human performed.
+Fed only the start position, the policy's predictions ran on the UR5e: **3 out of 3 successes**, runs no human performed.
 
 ![Policy on the UR5e](media/ur5e_policy_09.gif)
 
-## Usage
+## Parameters
 
-```
-python src/calibrate.py videos/demo_01.mov click     # check calibration
-python src/hand_track.py videos/*.mov                # videos to demos
-python src/audio.py videos/*.mov                     # refine release
-mjpython src/retarget.py demos/demo_01.json          # watch it: 1 Panda, 2 UR5e, 3 2-link
-python src/policy.py train
-python src/policy.py test
-```
+| Parameter | Value | | Parameter | Value |
+|---|---|---|---|---|
+| Marker size | 0.10 m | | Demos | 13 (10 train, 3 test) |
+| Virtual robot base | 25 cm behind tape mark | | Held-out | 04, 09, 13 |
+| Success radius | 4 cm | | Path points | 10 |
+| 2-link links | 0.40, 0.35 m | | Policy | Linear, weight penalty 0.1 |
+| 2-link slide | 6 cm | | Suction force | 10 N |
 
-All demos on one robot, no window:
+## Project structure
 
-```
-for f in demos/demo_*.json; do echo 1 | python src/retarget.py $f --headless; done
-```
+| File | Responsibility |
+|---|---|
+| `src/calibrate.py` | Marker detection, pixels to table metres |
+| `src/hand_track.py` | Video to demo: object and hand tracking |
+| `src/audio.py` | Release timing from the tap |
+| `src/ik.py` | Robot selection, IK with mink |
+| `src/pick.py` | Pick and place sequence, one for all three robots |
+| `src/retarget.py` | Demo onto any robot, scored, optional GIF |
+| `src/policy.py` | Train and test the policy |
+| `cpp/` | My IK library (submodule) and pybind11 bindings |
+| `assets/` | Panda, UR5e and 2-link scenes |
+| `demos/`, `results/` | Extracted demos and scores |
 
-## Installation
+## Running it
 
 Python 3.12, tested on macOS.
 
@@ -87,49 +104,46 @@ cd phone-to-robot-arm
 python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 mkdir models && curl -L -o models/hand_landmarker.task https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task
-```
-
-Build the C++ bridge:
-
-```
 c++ -O3 -shared -std=c++17 -undefined dynamic_lookup $(python -m pybind11 --includes) cpp/bindings.cpp cpp/ik_solver/solver.cpp cpp/ik_solver/vec2.cpp -o src/ik2d$(python -c "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX'))")
 ```
 
-On macOS the viewer needs `mjpython`.
+1. `python src/hand_track.py videos/*.mov` turns videos into demos.
+2. `python src/audio.py videos/*.mov` refines the releases.
+3. `mjpython src/retarget.py demos/demo_01.json` replays one. Pick 1 Panda, 2 UR5e, 3 2-link.
+4. `python src/policy.py train` then `python src/policy.py test`.
 
-## Design choices
+## Design notes
 
-- **Suction on the UR5e and 2-link arm**, via MuJoCo's adhesion actuator. Menagerie's UR5e has no gripper, and real ones often use suction.
-- **One sequence, three robots.** `pick.py` writes the steps once. Each robot brings its own `go` function and gripper values.
-- **Link lengths read from the XML**, so the model is the single source of truth.
-- **The object marks grab and release, the hand marks the path.** Its position in the first and last frames is exact. The finger pinch is kept as a fallback.
-- **The virtual robot stands 25cm behind the tape mark**, so every demo is within reach of all three arms.
-- **Fixed held-out split**: demos 04, 09 and 13, inside the spread of training positions.
+- **Object, not fingers, marks grab and release.** Holding an object keeps thumb and index apart, so the finger gap flickered mid-carry. The object's own start and end positions are exact.
+- **Colour, not brightness, finds the marker.** Glare washed the printed black out to the same brightness as the wood, so 12 of 13 videos failed. The table is coloured and the marker isn't, so coloured pixels are whitened before detection.
+- **Virtual robot moved 25cm back.** Most demos started too close for the Panda to reach down. Panda went from 4 to 12 successes out of 13.
+- **Suction on the UR5e and 2-link arm**, via MuJoCo's adhesion actuator. Menagerie's UR5e has no gripper.
+- **One sequence, three robots.** Each robot brings its own `go` function and gripper values. Link lengths are read from the XML.
+- **Angle conventions.** My library uses degrees from vertical and the elbow's inside angle. MuJoCo wants radians from x and the bend from straight.
+- **pybind11 on macOS 27.** The linker didn't understand the newest SDK. Prefix the build with `SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX26.sdk`.
 
-## What broke
+## Assumptions and known issues
 
-- **Meshes not found.** Included files resolve paths from the main scene, so each scene lives in its robot's folder.
-- **Gripper wouldn't open.** My wait function overwrote the gripper command every frame.
-- **2-link tool fell through its slide.** Without `autolimits`, MuJoCo ignores `range`.
-- **pybind11 wouldn't link on macOS 27.** The linker didn't understand the newest SDK. Fixed by prefixing the build with `SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX26.sdk`.
-- **Angle conventions.** My library uses degrees from the y axis and the elbow's inside angle. MuJoCo wants radians from x and the bend from straight. Converted in `pick.py`.
-- **Marker not found in 12 of 13 videos.** Glare washed the printed black out to the same brightness as the wood. Fixed by using colour instead: the table is coloured, the marker isn't, so colourful pixels get turned white before detection.
-- **Release detected mid-carry.** Holding the object keeps thumb and index apart, so the pinch flickered around the threshold. Switched to tracking the object's own start and end positions.
-- **Panda couldn't reach.** Most demos started too close to the robot's base for it to reach down. Moved the virtual robot back 25cm: Panda went from 4 to 12 successes out of 13.
-- **2-link arm out of reach** after that move. Lengthened its links from 35 and 30cm to 40 and 35cm.
+- **The real object was a flat sticky note** standing in for the 4cm sim cube. It's quiet, so audio missed the tap on 3 of 13 demos.
+- **No height from overhead.** Fingertips sit above the table, so the hand path carries a small parallax error.
+- **The 2-link tool drags the object** instead of lifting it cleanly.
+- **13 demos is small.** The policy is a proof of concept.
 
-## Known issues
+## Roadmap
 
-- The 2-link arm's tool drags the cube rather than lifting it cleanly.
-- The real object was a flat sticky note standing in for the 4cm sim cube. It's also quiet, so audio missed the tap on 3 of 13 demos.
-- A large shadow fell across the table while filming.
-- No height data from overhead, and fingertips sit above the table, so the hand path carries a small parallax error.
-- 13 demos is small. The policy is a proof of concept.
+- [x] MuJoCo scenes for Panda, UR5e and a custom 2-link arm
+- [x] IK with mink, and my C++ IK through pybind11
+- [x] Marker calibration, object and hand tracking, audio release timing
+- [x] Replay on all three robots, scored
+- [x] Policy with baselines, driving a robot on held-out demos
+- [ ] Fix the 2-link drag with a smaller cup and longer slide
+- [ ] More demos, a real cube, and a moving target so release prediction matters
+- [ ] Use the 2D Arm Joint Control PID loops for the 2-link joints
 
 ## How this was built
 
-The scene, the robot setup in `ik.py` and `pick.py`, and the 2-link arm are mine, built while learning with Claude as a tutor. The C++ IK library is mine from before. Under the deadline, calibration, hand tracking, audio, retargeting and the policy were written with heavy help from Claude, and I've gone through each to understand it.
+The scene, robot setup in `ik.py` and `pick.py`, and the 2-link arm are mine, built while learning with Claude as a tutor. The C++ IK library is mine from before. Under the deadline, calibration, hand tracking, audio, retargeting and the policy were written with heavy help from Claude, and I've gone through each to understand it. All demo data is from my own recordings.
 
-## Credits
+## Built with
 
-[MuJoCo](https://github.com/google-deepmind/mujoco), [MuJoCo Menagerie](https://github.com/google-deepmind/mujoco_menagerie) (Panda and UR5e, Apache 2.0, I added grip sites and a suction cup), [mink](https://github.com/kevinzakka/mink), [MediaPipe](https://github.com/google-ai-edge/mediapipe), [librosa](https://github.com/librosa/librosa). All demo data is from my own recordings.
+MuJoCo · [Menagerie](https://github.com/google-deepmind/mujoco_menagerie) (Apache 2.0, grip sites and suction cup added) · [mink](https://github.com/kevinzakka/mink) · MediaPipe · OpenCV · librosa · PyTorch · pybind11 · C++
