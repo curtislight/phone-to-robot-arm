@@ -38,3 +38,6 @@ demo_10,human,two_link,27.4,23.5,True
 demo_11,human,two_link,24.6,34.5,True
 demo_12,human,two_link,4.6,19.9,True
 demo_13,human,two_link,27.2,30.0,True
+predicted_demo_04,policy,ur5e,36.1,6.8,True
+predicted_demo_09,policy,ur5e,16.1,1.4,True
+predicted_demo_13,policy,ur5e,9.9,2.5,True
