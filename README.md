@@ -103,9 +103,11 @@ git clone --recurse-submodules https://github.com/curtislight/phone-to-robot-arm
 cd phone-to-robot-arm
 python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-mkdir models && curl -L -o models/hand_landmarker.task https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task
+mkdir -p models && curl -L -o models/hand_landmarker.task https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task
 c++ -O3 -shared -std=c++17 -undefined dynamic_lookup $(python -m pybind11 --includes) cpp/bindings.cpp cpp/ik_solver/solver.cpp cpp/ik_solver/vec2.cpp -o src/ik2d$(python -c "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX'))")
 ```
+
+Videos aren't included. Extracted demos are in `demos/`, so start from step 3.
 
 1. `python src/hand_track.py videos/*.mov` turns videos into demos.
 2. `python src/audio.py videos/*.mov` refines the releases.
