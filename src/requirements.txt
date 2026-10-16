@@ -1,0 +1,10 @@
+mujoco
+mink
+daqp
+numpy
+opencv-contrib-python
+mediapipe
+librosa
+imageio-ffmpeg
+torch
+pybind11
