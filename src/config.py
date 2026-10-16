@@ -6,7 +6,7 @@ Units are metres, in the simulation's table frame:
 MARKER_DICT = "DICT_4X4_50"
 MARKER_ID = 0
 MARKER_SIZE = 0.10           # side of the printed black square, measure with a ruler
-MARKER_CENTER = (0.30, 0.0)  # where the marker's centre sits on the table
+MARKER_CENTER = (0.555, 0.17)  # where the marker's centre sits on the table
 
 # Target square on the table (cube destination)
-TARGET_CENTER = (0.5, -0.2)
+TARGET_CENTER = (0.59, 0.02)

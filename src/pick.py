@@ -66,19 +66,20 @@ def wait(seconds, viewer):  # lets actuators grip before moving
             return
 
 
-with mujoco.viewer.launch_passive(model, data) as viewer:
-    go(cube_pos + above + suction_height, viewer)   # hover above the cube first
-    go(cube_pos + suction_height, viewer)           # then come straight down onto it
-    data.ctrl[max_q] = CLOSED
-    wait(0.75, viewer)
-    go(cube_pos + above + suction_height, viewer)
-    go(target_pos + hover + suction_height, viewer)
-    data.ctrl[max_q] = OPEN
-    wait(0.75, viewer)
-    go(target_pos + above + suction_height, viewer)
+if __name__ == "__main__":
+    with mujoco.viewer.launch_passive(model, data) as viewer:
+        go(cube_pos + above + suction_height, viewer)   # hover above the cube first
+        go(cube_pos + suction_height, viewer)           # then come straight down onto it
+        data.ctrl[max_q] = CLOSED
+        wait(0.75, viewer)
+        go(cube_pos + above + suction_height, viewer)
+        go(target_pos + hover + suction_height, viewer)
+        data.ctrl[max_q] = OPEN
+        wait(0.75, viewer)
+        go(target_pos + above + suction_height, viewer)
 
-    # keep window open
-    while viewer.is_running():
-        mujoco.mj_step(model, data)
-        viewer.sync()
-        time.sleep(model.opt.timestep)
+        # keep window open
+        while viewer.is_running():
+            mujoco.mj_step(model, data)
+            viewer.sync()
+            time.sleep(model.opt.timestep)
