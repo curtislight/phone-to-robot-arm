@@ -4,6 +4,12 @@ Film yourself moving a cube with your phone. Three different robots do the same 
 
 Built for Humanoid's Robot Learning intern challenge, October 2026.
 
+| Panda | UR5e | 2-link (my C++ IK) |
+|---|---|---|
+| ![Panda](media/panda_demo_01.gif) | ![UR5e](media/ur5e_demo_01.gif) | ![2-link](media/twolink_demo_01.gif) |
+
+_The same phone demo, replayed on three different robots._
+
 ## Highlights
 
 - **One demo, three bodies.** A Franka Panda, a UR5e, and a 2-link arm I designed.
@@ -40,14 +46,19 @@ The 2-link arm is the loosest. Its tool drags the cube instead of lifting it cle
 
 **Policy on the 3 held-out demos**
 
-_Fill in after running `python src/policy.py test`._
-
 | | Release error | Path error |
 |---|---|---|
-| Policy | _x mm_ | _x mm_ |
-| Baseline | _x mm_ | _x mm_ |
+| Linear policy (final) | 21.0 mm | 54.0 mm |
+| Baseline | 16.0 mm | 54.3 mm |
+| Neural net (first try) | 36.8 mm | 132.7 mm |
 
-The release baseline always places at the average spot. With a fixed target that's hard to beat. The path is where the policy should help, since it depends on where the object starts.
+My first policy was a small neural network. It hit near-zero training loss, meaning it memorised the 10 demos, and lost badly to the baseline. So I switched to a linear model that predicts corrections on top of the baseline, with a penalty on large weights. With so little data, it can't memorise, and if it learns nothing it falls back to the baseline.
+
+On average it ties the baseline on path. Per demo it's more interesting: on demos 09 and 13, inside the training spread, it beats the baseline (28.5 vs 39.8mm, and 42.5 vs 70.2mm). On demo 04, at the far edge of the spread, it loses (91.1 vs 52.8mm), because it's extrapolating. On release the baseline wins, which makes sense: my target never moves, so "the usual spot" is hard to beat.
+
+**The policy driving a robot.** Fed only the cube's start position, the policy's predictions ran on the UR5e: 3 out of 3 successes, landing 36, 16 and 10mm from the target. These are runs no human performed.
+
+![Policy on the UR5e](media/ur5e_policy_09.gif)
 
 ## Usage
 
