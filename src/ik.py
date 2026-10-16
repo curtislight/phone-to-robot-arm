@@ -18,6 +18,11 @@ elif robot == 2:   #ur5e
     max_q = 6
     suction_height = np.array([0, 0, 0.019])
 
+elif robot == 3:   #2d
+    model = mujoco.MjModel.from_xml_path("assets/two_link/my_scene.xml")
+    max_q = 3
+    suction_height = np.array([0, 0, 0])
+
 data = mujoco.MjData(model)
 
 home_id = model.key("home").id  # gets home joint angles from .xml
